@@ -27,6 +27,42 @@ if (mobileHero) {
   }
 }
 
+
+const signatureGallery = document.querySelector('[data-signature-gallery]');
+if (signatureGallery) {
+  const slides = Array.from(signatureGallery.querySelectorAll('[data-signature-slide]'));
+  const prevButton = signatureGallery.querySelector('[data-signature-prev]');
+  const nextButton = signatureGallery.querySelector('[data-signature-next]');
+  const viewport = signatureGallery.querySelector('[data-signature-viewport]');
+  let activeIndex = 0;
+  let touchStartX = 0;
+
+  const render = (nextIndex) => {
+    activeIndex = (nextIndex + slides.length) % slides.length;
+    slides.forEach((slide, index) => {
+      slide.classList.toggle('is-active', index === activeIndex);
+    });
+  };
+
+  const goNext = () => render(activeIndex + 1);
+  const goPrev = () => render(activeIndex - 1);
+
+  prevButton?.addEventListener('click', goPrev);
+  nextButton?.addEventListener('click', goNext);
+
+  viewport?.addEventListener('touchstart', (event) => {
+    touchStartX = event.changedTouches[0]?.clientX || 0;
+  }, { passive: true });
+
+  viewport?.addEventListener('touchend', (event) => {
+    const touchEndX = event.changedTouches[0]?.clientX || 0;
+    const deltaX = touchEndX - touchStartX;
+    if (Math.abs(deltaX) < 45) return;
+    if (deltaX < 0) goNext();
+    if (deltaX > 0) goPrev();
+  }, { passive: true });
+}
+
 const filters = Array.from(document.querySelectorAll('[data-filter]'));
 const galleryGroups = Array.from(document.querySelectorAll('.portfolio-group[data-category]'));
 
