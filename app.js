@@ -26,3 +26,97 @@ if (mobileHero) {
     }, 3500);
   }
 }
+
+const filters = Array.from(document.querySelectorAll('[data-filter]'));
+const galleryGroups = Array.from(document.querySelectorAll('.portfolio-group[data-category]'));
+
+if (filters.length && galleryGroups.length) {
+  const setFilter = (filterValue) => {
+    filters.forEach((filterBtn) => {
+      const active = filterBtn.dataset.filter === filterValue;
+      filterBtn.classList.toggle('is-active', active);
+      filterBtn.setAttribute('aria-selected', String(active));
+    });
+
+    galleryGroups.forEach((group) => {
+      const categories = (group.dataset.category || '').split(/\s+/);
+      const visible = filterValue === 'all' || categories.includes(filterValue);
+      group.hidden = !visible;
+    });
+  };
+
+  filters.forEach((filterBtn) => {
+    filterBtn.addEventListener('click', () => setFilter(filterBtn.dataset.filter));
+  });
+}
+
+const lightbox = document.querySelector('[data-lightbox]');
+if (lightbox) {
+  const triggerItems = Array.from(document.querySelectorAll('[data-lightbox-item]'));
+  const closeButtons = Array.from(document.querySelectorAll('[data-lightbox-close]'));
+  const nextButton = lightbox.querySelector('[data-lightbox-next]');
+  const prevButton = lightbox.querySelector('[data-lightbox-prev]');
+  const lightboxImg = lightbox.querySelector('[data-lightbox-image]');
+  const lightboxCaption = lightbox.querySelector('[data-lightbox-caption]');
+  const lightboxSurface = lightbox.querySelector('[data-lightbox-surface]');
+
+  let activeItems = triggerItems;
+  let activeIndex = 0;
+  let touchStartX = 0;
+
+  const updateSource = () => {
+    const item = activeItems[activeIndex];
+    if (!item) return;
+    lightboxImg.src = item.dataset.full || '';
+    lightboxImg.alt = item.dataset.alt || '';
+    lightboxCaption.textContent = item.dataset.caption || '';
+  };
+
+  const openLightbox = (clicked) => {
+    const visibleItems = triggerItems.filter((item) => !item.closest('.portfolio-group')?.hidden);
+    activeItems = visibleItems.length ? visibleItems : triggerItems;
+    activeIndex = Math.max(activeItems.indexOf(clicked), 0);
+    lightbox.hidden = false;
+    document.body.style.overflow = 'hidden';
+    updateSource();
+  };
+
+  const closeLightbox = () => {
+    lightbox.hidden = true;
+    document.body.style.overflow = '';
+  };
+
+  const goNext = () => {
+    activeIndex = (activeIndex + 1) % activeItems.length;
+    updateSource();
+  };
+
+  const goPrev = () => {
+    activeIndex = (activeIndex - 1 + activeItems.length) % activeItems.length;
+    updateSource();
+  };
+
+  triggerItems.forEach((item) => item.addEventListener('click', () => openLightbox(item)));
+  closeButtons.forEach((button) => button.addEventListener('click', closeLightbox));
+  nextButton?.addEventListener('click', goNext);
+  prevButton?.addEventListener('click', goPrev);
+
+  document.addEventListener('keydown', (event) => {
+    if (lightbox.hidden) return;
+    if (event.key === 'Escape') closeLightbox();
+    if (event.key === 'ArrowRight') goNext();
+    if (event.key === 'ArrowLeft') goPrev();
+  });
+
+  lightboxSurface?.addEventListener('touchstart', (event) => {
+    touchStartX = event.changedTouches[0]?.clientX || 0;
+  }, { passive: true });
+
+  lightboxSurface?.addEventListener('touchend', (event) => {
+    const endX = event.changedTouches[0]?.clientX || 0;
+    const deltaX = endX - touchStartX;
+    if (Math.abs(deltaX) < 40) return;
+    if (deltaX < 0) goNext();
+    if (deltaX > 0) goPrev();
+  }, { passive: true });
+}
