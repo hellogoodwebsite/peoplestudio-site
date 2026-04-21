@@ -345,6 +345,14 @@ a { color: inherit; text-decoration: none; }
   background: #d9d9d9;
   overflow: hidden;
 }
+
+.signature-gallery__viewport {
+  touch-action: pan-y;
+  cursor: grab;
+}
+.signature-gallery__viewport:active {
+  cursor: grabbing;
+}
 .signature-gallery__slide {
   position: absolute;
   inset: 0;
@@ -559,4 +567,51 @@ a { color: inherit; text-decoration: none; }
   .lightbox__nav--prev { left: .7rem; }
   .lightbox__nav--next { right: .7rem; }
   .lightbox__figure img { max-height: calc(100vh - 140px); }
+}
+
+
+.signature-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+}
+.signature-lightbox[hidden] {
+  display: none;
+}
+.signature-lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, .8);
+}
+.signature-lightbox__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(96vw, 1200px);
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.signature-lightbox__dialog img {
+  width: 100%;
+  height: auto;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: .25rem;
+}
+.signature-lightbox__close {
+  position: absolute;
+  top: .6rem;
+  right: .6rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 999px;
+  font-size: 1.2rem;
+  color: #fff;
+  background: rgba(0, 0, 0, .55);
+  cursor: pointer;
 }

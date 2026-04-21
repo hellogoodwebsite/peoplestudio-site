@@ -34,10 +34,18 @@ if (signatureGallery) {
   const prevButton = signatureGallery.querySelector('[data-signature-prev]');
   const nextButton = signatureGallery.querySelector('[data-signature-next]');
   const viewport = signatureGallery.querySelector('[data-signature-viewport]');
+  const lightbox = document.querySelector('[data-signature-lightbox]');
+  const lightboxImage = lightbox?.querySelector('[data-signature-lightbox-image]');
+  const lightboxCloseButtons = Array.from(document.querySelectorAll('[data-signature-lightbox-close]'));
+
   let activeIndex = 0;
-  let touchStartX = 0;
+  let pointerStartX = 0;
+  let pointerStartY = 0;
+  let isPointerDown = false;
+  let isHorizontalSwipe = false;
 
   const render = (nextIndex) => {
+    if (!slides.length) return;
     activeIndex = (nextIndex + slides.length) % slides.length;
     slides.forEach((slide, index) => {
       slide.classList.toggle('is-active', index === activeIndex);
@@ -47,20 +55,122 @@ if (signatureGallery) {
   const goNext = () => render(activeIndex + 1);
   const goPrev = () => render(activeIndex - 1);
 
+  const updateLightboxImage = () => {
+    const activeImage = slides[activeIndex]?.querySelector('img');
+    if (!activeImage || !lightboxImage) return;
+    lightboxImage.src = activeImage.currentSrc || activeImage.src;
+    lightboxImage.alt = activeImage.alt || 'Fullscreen gallery image';
+  };
+
+  const openLightbox = () => {
+    if (!lightbox) return;
+    updateLightboxImage();
+    lightbox.hidden = false;
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeLightbox = () => {
+    if (!lightbox) return;
+    lightbox.hidden = true;
+    document.body.style.overflow = '';
+  };
+
+  const onSwipeStart = (clientX, clientY) => {
+    isPointerDown = true;
+    isHorizontalSwipe = false;
+    pointerStartX = clientX;
+    pointerStartY = clientY;
+  };
+
+  const onSwipeMove = (clientX, clientY, event) => {
+    if (!isPointerDown) return;
+    const deltaX = clientX - pointerStartX;
+    const deltaY = clientY - pointerStartY;
+
+    if (!isHorizontalSwipe && Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      isHorizontalSwipe = true;
+    }
+
+    if (isHorizontalSwipe && event?.cancelable) {
+      event.preventDefault();
+    }
+  };
+
+  const onSwipeEnd = (clientX) => {
+    if (!isPointerDown) return;
+    const deltaX = clientX - pointerStartX;
+    if (Math.abs(deltaX) >= 45) {
+      if (deltaX < 0) goNext();
+      if (deltaX > 0) goPrev();
+    }
+    isPointerDown = false;
+    isHorizontalSwipe = false;
+  };
+
   prevButton?.addEventListener('click', goPrev);
   nextButton?.addEventListener('click', goNext);
 
+  viewport?.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target instanceof HTMLElement && target.closest('[data-signature-prev], [data-signature-next]')) return;
+    openLightbox();
+  });
+
   viewport?.addEventListener('touchstart', (event) => {
-    touchStartX = event.changedTouches[0]?.clientX || 0;
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    onSwipeStart(touch.clientX, touch.clientY);
   }, { passive: true });
 
+  viewport?.addEventListener('touchmove', (event) => {
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    onSwipeMove(touch.clientX, touch.clientY, event);
+  }, { passive: false });
+
   viewport?.addEventListener('touchend', (event) => {
-    const touchEndX = event.changedTouches[0]?.clientX || 0;
-    const deltaX = touchEndX - touchStartX;
-    if (Math.abs(deltaX) < 45) return;
-    if (deltaX < 0) goNext();
-    if (deltaX > 0) goPrev();
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    onSwipeEnd(touch.clientX);
   }, { passive: true });
+
+  viewport?.addEventListener('pointerdown', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    onSwipeStart(event.clientX, event.clientY);
+  });
+
+  viewport?.addEventListener('pointermove', (event) => {
+    if (!isPointerDown || event.pointerType !== 'mouse') return;
+    onSwipeMove(event.clientX, event.clientY, event);
+  });
+
+  viewport?.addEventListener('pointerup', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    onSwipeEnd(event.clientX);
+  });
+
+  viewport?.addEventListener('pointerleave', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    isPointerDown = false;
+    isHorizontalSwipe = false;
+  });
+
+  lightboxCloseButtons.forEach((button) => {
+    button.addEventListener('click', closeLightbox);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (lightbox?.hidden !== false) return;
+    if (event.key === 'Escape') closeLightbox();
+    if (event.key === 'ArrowRight') {
+      goNext();
+      updateLightboxImage();
+    }
+    if (event.key === 'ArrowLeft') {
+      goPrev();
+      updateLightboxImage();
+    }
+  });
 }
 
 const filters = Array.from(document.querySelectorAll('[data-filter]'));
